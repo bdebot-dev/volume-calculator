@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculateur de volumes</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <div>
+        <h1>Calculateur de volumes</h1>
+        <p>
+          Application de calcul des volumes des solides usuels. L'application applique les méthodes forestières de Smalian, Huber et Newton.
+        </p>
+
+        <div class="toolbar">
+          <div class="field">
+            <label for="globalUnit">Unité de saisie</label>
+            <select id="globalUnit">
+              <option value="mm">Millimètres (mm)</option>
+              <option value="cm" selected>Centimètres (cm)</option>
+              <option value="m">Mètres (m)</option>
+            </select>
+            <small>Toutes les valeurs saisies sont converties automatiquement en mètres avant calcul.</small>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-side">
+        <strong>Ce que fait l’outil</strong>
+        <ul>
+          <li>Volumes : cylindre, tronc de cône, parallélépipède rectangle, cône, sphère</li>
+          <li>Cubage forestier : Smalian, Huber, Newton</li>
+          <li>Conversions : m³, dm³, litres, cm³</li>
+        </ul>
+      </aside>
+    </section>
+
+    <div class="tabs">
+      <button class="tab-button active" data-tab="solides">Solides géométriques</button>
+      <button class="tab-button" data-tab="forestier">Cubage forestier</button>
+    </div>
+
+    <section id="solides" class="tab-panel active">
+      <div class="grid">
+        <div class="card">
+          <h2>Calcul d’un solide</h2>
+          <p class="description">Sélectionner le solide, renseigner les dimensions, puis lancer le calcul.</p>
+
+          <div class="field">
+            <label for="shapeSelect">Type de solide</label>
+            <select id="shapeSelect"></select>
+          </div>
+
+          <div class="badge-row">
+            <span class="badge" id="shapeBadge"></span>
+            <span class="badge" id="shapeFormula"></span>
+          </div>
+
+          <div id="shapeInputs" class="input-grid"></div>
+
+          <div class="actions">
+            <button id="shapeCalculate" class="button button-primary">Calculer</button>
+            <button id="shapeReset" class="button button-secondary">Réinitialiser</button>
+          </div>
+        </div>
+
+        <div class="result-card">
+          <h3 id="shapeResultTitle">Résultat</h3>
+          <div id="shapeResultFormula" class="result-formula">Aucune formule sélectionnée.</div>
+
+          <div class="result-main">
+            <div class="label">Volume principal</div>
+            <div id="shapeMainValue" class="value">-</div>
+          </div>
+
+          <div class="result-grid">
+            <div class="metric"><div class="label">mètres cubes</div><div id="shapeM3" class="value">-</div></div>
+            <div class="metric"><div class="label">décimètres cubes</div><div id="shapeDM3" class="value">-</div></div>
+            <div class="metric"><div class="label">litres</div><div id="shapeL" class="value">-</div></div>
+            <div class="metric"><div class="label">centimètres cubes</div><div id="shapeCM3" class="value">-</div></div>
+          </div>
+
+          <div class="note">Les dimensions sont interprétées dans l’unité choisie, puis converties en mètres. Le résultat principal est toujours donné en m³.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="forestier" class="tab-panel">
+      <div class="grid">
+        <div class="card">
+          <h2>Module de cubage forestier</h2>
+          <p class="description">Choisir une méthode adaptée au relevé des diamètres sur la grume.</p>
+
+          <div class="field">
+            <label for="forestrySelect">Méthode de cubage</label>
+            <select id="forestrySelect"></select>
+          </div>
+
+          <div class="method-panel">
+            <strong id="forestryMethodName"></strong>
+            <div id="forestryMethodDescription" class="muted"></div>
+            <div id="forestryMethodFormula" class="muted" style="margin-top:10px;"></div>
+          </div>
+
+          <div id="forestryInputs" class="input-grid"></div>
+
+          <div class="actions">
+            <button id="forestryCalculate" class="button button-primary">Calculer</button>
+            <button id="forestryReset" class="button button-secondary">Réinitialiser</button>
+          </div>
+        </div>
+
+        <div class="result-card">
+          <h3 id="forestryResultTitle">Résultat</h3>
+          <div id="forestryResultFormula" class="result-formula">Aucune méthode sélectionnée.</div>
+
+          <div class="result-main">
+            <div class="label">Volume principal</div>
+            <div id="forestryMainValue" class="value">-</div>
+          </div>
+
+          <div class="result-grid">
+            <div class="metric"><div class="label">mètres cubes</div><div id="forestryM3" class="value">-</div></div>
+            <div class="metric"><div class="label">décimètres cubes</div><div id="forestryDM3" class="value">-</div></div>
+            <div class="metric"><div class="label">litres</div><div id="forestryL" class="value">-</div></div>
+            <div class="metric"><div class="label">centimètres cubes</div><div id="forestryCM3" class="value">-</div></div>
+          </div>
+
+          <div class="note">Hypothèse de calcul : les sections sont assimilées à des cercles et les diamètres sont saisis dans la même unité.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+    <script src="app.js"></script>
+</body>
+</html>

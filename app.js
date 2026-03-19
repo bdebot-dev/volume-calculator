@@ -1,0 +1,398 @@
+    const UNIT_FACTORS_TO_M = {
+      mm: 0.001,
+      cm: 0.01,
+      m: 1,
+    };
+
+    const SHAPES = {
+      cylindre: {
+        label: "Cylindre",
+        fields: [
+          { key: "r", label: "Rayon" },
+          { key: "h", label: "Hauteur" },
+        ],
+        formula: "V = π × r² × h",
+      },
+      troncCone: {
+        label: "Tronc de cône",
+        fields: [
+          { key: "R", label: "Grand rayon" },
+          { key: "r", label: "Petit rayon" },
+          { key: "h", label: "Hauteur" },
+        ],
+        formula: "V = (π × h × (R² + Rr + r²)) / 3",
+      },
+      parallelepipede: {
+        label: "Parallélépipède rectangle",
+        fields: [
+          { key: "L", label: "Longueur" },
+          { key: "l", label: "Largeur" },
+          { key: "e", label: "Épaisseur" },
+        ],
+        formula: "V = L × l × e",
+      },
+      cone: {
+        label: "Cône",
+        fields: [
+          { key: "r", label: "Rayon" },
+          { key: "h", label: "Hauteur" },
+        ],
+        formula: "V = (π × r² × h) / 3",
+      },
+      sphere: {
+        label: "Sphère",
+        fields: [
+          { key: "r", label: "Rayon" },
+        ],
+        formula: "V = (4/3) × π × r³",
+      },
+    };
+
+    const FORESTRY_METHODS = {
+      smalian: {
+        label: "Smalian",
+        description: "Utilise les sections aux deux extrémités de la grume.",
+        fields: [
+          { key: "d1", label: "Diamètre petit bout" },
+          { key: "d2", label: "Diamètre gros bout" },
+          { key: "L", label: "Longueur de la grume" },
+        ],
+        formula: "V = L × (A₁ + A₂) / 2",
+      },
+      huber: {
+        label: "Huber",
+        description: "Utilise la section au milieu de la grume.",
+        fields: [
+          { key: "dm", label: "Diamètre médian" },
+          { key: "L", label: "Longueur de la grume" },
+        ],
+        formula: "V = L × Aₘ",
+      },
+      newton: {
+        label: "Newton",
+        description: "Utilise les sections aux deux extrémités et au milieu.",
+        fields: [
+          { key: "d1", label: "Diamètre petit bout" },
+          { key: "dm", label: "Diamètre médian" },
+          { key: "d2", label: "Diamètre gros bout" },
+          { key: "L", label: "Longueur de la grume" },
+        ],
+        formula: "V = L × (A₁ + 4Aₘ + A₂) / 6",
+      },
+    };
+
+    const state = {
+      unit: "cm",
+      activeTab: "solides",
+      shape: "cylindre",
+      forestryMethod: "smalian",
+      shapeValues: {},
+      forestryValues: {},
+    };
+
+    const globalUnit = document.getElementById("globalUnit");
+    const shapeSelect = document.getElementById("shapeSelect");
+    const forestrySelect = document.getElementById("forestrySelect");
+    const shapeInputs = document.getElementById("shapeInputs");
+    const forestryInputs = document.getElementById("forestryInputs");
+
+    function toMeters(value, unit) {
+      return value * UNIT_FACTORS_TO_M[unit];
+    }
+
+    function areaFromDiameter(diameterInMeters) {
+      const radius = diameterInMeters / 2;
+      return Math.PI * radius * radius;
+    }
+
+    function parsePositiveNumber(value) {
+      if (value === "" || value === null || value === undefined) return null;
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      return n;
+    }
+
+    function formatVolumeSet(volumeM3) {
+      if (!Number.isFinite(volumeM3)) {
+        return { m3: "-", dm3: "-", litres: "-", cm3: "-" };
+      }
+      return {
+        m3: `${volumeM3.toFixed(6)} m³`,
+        dm3: `${(volumeM3 * 1000).toFixed(3)} dm³`,
+        litres: `${(volumeM3 * 1000).toFixed(3)} L`,
+        cm3: `${(volumeM3 * 1000000).toFixed(0)} cm³`,
+      };
+    }
+
+    function createField(field, type) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "field";
+
+      const label = document.createElement("label");
+      label.setAttribute("for", `${type}_${field.key}`);
+      label.textContent = `${field.label} (${state.unit})`;
+
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.step = "any";
+      input.id = `${type}_${field.key}`;
+      input.placeholder = `${field.label} en ${state.unit}`;
+      input.value = type === "shape" ? (state.shapeValues[field.key] || "") : (state.forestryValues[field.key] || "");
+      input.addEventListener("input", (e) => {
+        if (type === "shape") {
+          state.shapeValues[field.key] = e.target.value;
+        } else {
+          state.forestryValues[field.key] = e.target.value;
+        }
+        const errorNode = wrapper.querySelector(".error");
+        errorNode.textContent = "";
+      });
+
+      const error = document.createElement("div");
+      error.className = "error";
+      error.dataset.errorFor = `${type}_${field.key}`;
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
+      wrapper.appendChild(error);
+      return wrapper;
+    }
+
+    function renderShapeSelect() {
+      shapeSelect.innerHTML = "";
+      Object.entries(SHAPES).forEach(([key, config]) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = config.label;
+        if (key === state.shape) option.selected = true;
+        shapeSelect.appendChild(option);
+      });
+    }
+
+    function renderForestrySelect() {
+      forestrySelect.innerHTML = "";
+      Object.entries(FORESTRY_METHODS).forEach(([key, config]) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = config.label;
+        if (key === state.forestryMethod) option.selected = true;
+        forestrySelect.appendChild(option);
+      });
+    }
+
+    function renderShapePanel() {
+      const config = SHAPES[state.shape];
+      document.getElementById("shapeBadge").textContent = config.label;
+      document.getElementById("shapeFormula").textContent = config.formula;
+      document.getElementById("shapeResultTitle").textContent = `Résultat pour ${config.label}`;
+      document.getElementById("shapeResultFormula").textContent = config.formula;
+
+      shapeInputs.innerHTML = "";
+      config.fields.forEach((field) => {
+        shapeInputs.appendChild(createField(field, "shape"));
+      });
+    }
+
+    function renderForestryPanel() {
+      const config = FORESTRY_METHODS[state.forestryMethod];
+      document.getElementById("forestryMethodName").textContent = config.label;
+      document.getElementById("forestryMethodDescription").textContent = config.description;
+      document.getElementById("forestryMethodFormula").textContent = config.formula;
+      document.getElementById("forestryResultTitle").textContent = `Résultat selon ${config.label}`;
+      document.getElementById("forestryResultFormula").textContent = config.formula;
+
+      forestryInputs.innerHTML = "";
+      config.fields.forEach((field) => {
+        forestryInputs.appendChild(createField(field, "forestry"));
+      });
+    }
+
+    function setResult(prefix, volumeM3) {
+      const formatted = formatVolumeSet(volumeM3);
+      document.getElementById(`${prefix}MainValue`).textContent = formatted.m3;
+      document.getElementById(`${prefix}M3`).textContent = formatted.m3;
+      document.getElementById(`${prefix}DM3`).textContent = formatted.dm3;
+      document.getElementById(`${prefix}L`).textContent = formatted.litres;
+      document.getElementById(`${prefix}CM3`).textContent = formatted.cm3;
+    }
+
+    function clearErrors(containerId) {
+      document.querySelectorAll(`#${containerId} .error`).forEach((node) => {
+        node.textContent = "";
+      });
+    }
+
+    function showError(type, key, message) {
+      const node = document.querySelector(`[data-error-for="${type}_${key}"]`);
+      if (node) node.textContent = message;
+    }
+
+    function validateValues(fields, values, type) {
+      clearErrors(type === "shape" ? "shapeInputs" : "forestryInputs");
+      let valid = true;
+
+      fields.forEach((field) => {
+        const parsed = parsePositiveNumber(values[field.key]);
+        if (parsed === null) {
+          valid = false;
+          showError(type, field.key, "Saisir une valeur numérique strictement positive.");
+        }
+      });
+
+      return valid;
+    }
+
+    function calculateShapeVolume() {
+      const config = SHAPES[state.shape];
+      if (!validateValues(config.fields, state.shapeValues, "shape")) {
+        setResult("shape", NaN);
+        return;
+      }
+
+      const v = Object.fromEntries(Object.entries(state.shapeValues).map(([k, val]) => [k, Number(val)]));
+      let volume = NaN;
+
+      switch (state.shape) {
+        case "cylindre": {
+          const r = toMeters(v.r, state.unit);
+          const h = toMeters(v.h, state.unit);
+          volume = Math.PI * r * r * h;
+          break;
+        }
+        case "troncCone": {
+          const R = toMeters(v.R, state.unit);
+          const r = toMeters(v.r, state.unit);
+          const h = toMeters(v.h, state.unit);
+          volume = (Math.PI * h * (R * R + R * r + r * r)) / 3;
+          break;
+        }
+        case "parallelepipede": {
+          const L = toMeters(v.L, state.unit);
+          const l = toMeters(v.l, state.unit);
+          const e = toMeters(v.e, state.unit);
+          volume = L * l * e;
+          break;
+        }
+        case "cone": {
+          const r = toMeters(v.r, state.unit);
+          const h = toMeters(v.h, state.unit);
+          volume = (Math.PI * r * r * h) / 3;
+          break;
+        }
+        case "sphere": {
+          const r = toMeters(v.r, state.unit);
+          volume = (4 / 3) * Math.PI * r * r * r;
+          break;
+        }
+      }
+
+      setResult("shape", volume);
+    }
+
+    function calculateForestryVolume() {
+      const config = FORESTRY_METHODS[state.forestryMethod];
+      if (!validateValues(config.fields, state.forestryValues, "forestry")) {
+        setResult("forestry", NaN);
+        return;
+      }
+
+      const v = Object.fromEntries(Object.entries(state.forestryValues).map(([k, val]) => [k, Number(val)]));
+      let volume = NaN;
+
+      switch (state.forestryMethod) {
+        case "smalian": {
+          const d1 = toMeters(v.d1, state.unit);
+          const d2 = toMeters(v.d2, state.unit);
+          const L = toMeters(v.L, state.unit);
+          const A1 = areaFromDiameter(d1);
+          const A2 = areaFromDiameter(d2);
+          volume = L * (A1 + A2) / 2;
+          break;
+        }
+        case "huber": {
+          const dm = toMeters(v.dm, state.unit);
+          const L = toMeters(v.L, state.unit);
+          const Am = areaFromDiameter(dm);
+          volume = L * Am;
+          break;
+        }
+        case "newton": {
+          const d1 = toMeters(v.d1, state.unit);
+          const dm = toMeters(v.dm, state.unit);
+          const d2 = toMeters(v.d2, state.unit);
+          const L = toMeters(v.L, state.unit);
+          const A1 = areaFromDiameter(d1);
+          const Am = areaFromDiameter(dm);
+          const A2 = areaFromDiameter(d2);
+          volume = L * (A1 + 4 * Am + A2) / 6;
+          break;
+        }
+      }
+
+      setResult("forestry", volume);
+    }
+
+    function resetShape() {
+      state.shapeValues = {};
+      renderShapePanel();
+      setResult("shape", NaN);
+    }
+
+    function resetForestry() {
+      state.forestryValues = {};
+      renderForestryPanel();
+      setResult("forestry", NaN);
+    }
+
+    function setupTabs() {
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.activeTab = button.dataset.tab;
+
+          document.querySelectorAll(".tab-button").forEach((btn) => btn.classList.remove("active"));
+          document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
+
+          button.classList.add("active");
+          document.getElementById(state.activeTab).classList.add("active");
+        });
+      });
+    }
+
+    function setupEvents() {
+      globalUnit.addEventListener("change", (e) => {
+        state.unit = e.target.value;
+        renderShapePanel();
+        renderForestryPanel();
+      });
+
+      shapeSelect.addEventListener("change", (e) => {
+        state.shape = e.target.value;
+        renderShapePanel();
+        setResult("shape", NaN);
+      });
+
+      forestrySelect.addEventListener("change", (e) => {
+        state.forestryMethod = e.target.value;
+        renderForestryPanel();
+        setResult("forestry", NaN);
+      });
+
+      document.getElementById("shapeCalculate").addEventListener("click", calculateShapeVolume);
+      document.getElementById("shapeReset").addEventListener("click", resetShape);
+      document.getElementById("forestryCalculate").addEventListener("click", calculateForestryVolume);
+      document.getElementById("forestryReset").addEventListener("click", resetForestry);
+    }
+
+    function init() {
+      renderShapeSelect();
+      renderForestrySelect();
+      renderShapePanel();
+      renderForestryPanel();
+      setResult("shape", NaN);
+      setResult("forestry", NaN);
+      setupTabs();
+      setupEvents();
+    }
+
+    init();
