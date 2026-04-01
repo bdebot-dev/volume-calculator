@@ -88,6 +88,10 @@
       forestryMethod: "smalian",
       shapeValues: {},
       forestryValues: {},
+      conversionValues: {
+        density: "",
+        solidM3PerStere: "",
+      },
     };
 
     const globalUnit = document.getElementById("globalUnit");
@@ -95,6 +99,8 @@
     const forestrySelect = document.getElementById("forestrySelect");
     const shapeInputs = document.getElementById("shapeInputs");
     const forestryInputs = document.getElementById("forestryInputs");
+    const woodDensity = document.getElementById("woodDensity");
+    const solidM3PerStere = document.getElementById("solidM3PerStere");
 
     function toMeters(value, unit) {
       return value * UNIT_FACTORS_TO_M[unit];
@@ -122,6 +128,16 @@
         litres: `${(volumeM3 * 1000).toFixed(3)} L`,
         cm3: `${(volumeM3 * 1000000).toFixed(0)} cm³`,
       };
+    }
+
+    function formatTons(volumeM3, densityKgM3) {
+      if (!Number.isFinite(volumeM3) || !Number.isFinite(densityKgM3)) return "-";
+      return `${((volumeM3 * densityKgM3) / 1000).toFixed(3)} t`;
+    }
+
+    function formatSteres(volumeM3, solidM3PerStereValue) {
+      if (!Number.isFinite(volumeM3) || !Number.isFinite(solidM3PerStereValue)) return "-";
+      return `${(volumeM3 / solidM3PerStereValue).toFixed(3)} st`;
     }
 
     function createField(field, type) {
@@ -206,19 +222,33 @@
       config.fields.forEach((field) => {
         forestryInputs.appendChild(createField(field, "forestry"));
       });
+
+      woodDensity.value = state.conversionValues.density;
+      solidM3PerStere.value = state.conversionValues.solidM3PerStere;
     }
 
-    function setResult(prefix, volumeM3) {
+    function setResult(prefix, volumeM3, extra = {}) {
       const formatted = formatVolumeSet(volumeM3);
       document.getElementById(`${prefix}MainValue`).textContent = formatted.m3;
       document.getElementById(`${prefix}M3`).textContent = formatted.m3;
       document.getElementById(`${prefix}DM3`).textContent = formatted.dm3;
       document.getElementById(`${prefix}L`).textContent = formatted.litres;
       document.getElementById(`${prefix}CM3`).textContent = formatted.cm3;
+
+      if (prefix === "forestry") {
+        document.getElementById("forestryTons").textContent = extra.tons || "-";
+        document.getElementById("forestrySteres").textContent = extra.steres || "-";
+      }
     }
 
     function clearErrors(containerId) {
       document.querySelectorAll(`#${containerId} .error`).forEach((node) => {
+        node.textContent = "";
+      });
+    }
+
+    function clearConversionErrors() {
+      document.querySelectorAll("[data-error-for^='conversion_']").forEach((node) => {
         node.textContent = "";
       });
     }
@@ -293,9 +323,11 @@
     function calculateForestryVolume() {
       const config = FORESTRY_METHODS[state.forestryMethod];
       if (!validateValues(config.fields, state.forestryValues, "forestry")) {
-        setResult("forestry", NaN);
+        setResult("forestry", NaN, { tons: "-", steres: "-" });
         return;
       }
+
+      clearConversionErrors();
 
       const v = Object.fromEntries(Object.entries(state.forestryValues).map(([k, val]) => [k, Number(val)]));
       let volume = NaN;
@@ -330,7 +362,25 @@
         }
       }
 
-      setResult("forestry", volume);
+      const density = parsePositiveNumber(state.conversionValues.density);
+      const stereCoefficient = parsePositiveNumber(state.conversionValues.solidM3PerStere);
+
+      let tons = "-";
+      let steres = "-";
+
+      if (state.conversionValues.density !== "" && density === null) {
+        showError("conversion", "density", "Saisir une masse volumique strictement positive.");
+      } else if (density !== null) {
+        tons = formatTons(volume, density);
+      }
+
+      if (state.conversionValues.solidM3PerStere !== "" && stereCoefficient === null) {
+        showError("conversion", "stere", "Saisir un coefficient stère strictement positif.");
+      } else if (stereCoefficient !== null) {
+        steres = formatSteres(volume, stereCoefficient);
+      }
+
+      setResult("forestry", volume, { tons, steres });
     }
 
     function resetShape() {
@@ -341,8 +391,13 @@
 
     function resetForestry() {
       state.forestryValues = {};
+      state.conversionValues = {
+        density: "",
+        solidM3PerStere: "",
+      };
       renderForestryPanel();
-      setResult("forestry", NaN);
+      clearConversionErrors();
+      setResult("forestry", NaN, { tons: "-", steres: "-" });
     }
 
     function setupTabs() {
@@ -375,7 +430,17 @@
       forestrySelect.addEventListener("change", (e) => {
         state.forestryMethod = e.target.value;
         renderForestryPanel();
-        setResult("forestry", NaN);
+        setResult("forestry", NaN, { tons: "-", steres: "-" });
+      });
+
+      woodDensity.addEventListener("input", (e) => {
+        state.conversionValues.density = e.target.value;
+        showError("conversion", "density", "");
+      });
+
+      solidM3PerStere.addEventListener("input", (e) => {
+        state.conversionValues.solidM3PerStere = e.target.value;
+        showError("conversion", "stere", "");
       });
 
       document.getElementById("shapeCalculate").addEventListener("click", calculateShapeVolume);
@@ -390,7 +455,7 @@
       renderShapePanel();
       renderForestryPanel();
       setResult("shape", NaN);
-      setResult("forestry", NaN);
+      setResult("forestry", NaN, { tons: "-", steres: "-" });
       setupTabs();
       setupEvents();
     }

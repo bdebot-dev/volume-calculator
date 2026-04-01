@@ -10,9 +10,9 @@
   <div class="container">
     <section class="hero">
       <div>
-        <h1>Calculateur de volumes</h1>
+        <h1>Calculateur de volumes et cubage forestier</h1>
         <p>
-          Application de calcul des volumes des solides usuels. L'application applique les méthodes forestières de Smalian, Huber et Newton.
+          Application permettant de calculer les volumes des solides usuels et applique les méthodes forestières de Smalian, Huber et Newton.
         </p>
 
         <div class="toolbar">
@@ -33,7 +33,7 @@
         <ul>
           <li>Volumes : cylindre, tronc de cône, parallélépipède rectangle, cône, sphère</li>
           <li>Cubage forestier : Smalian, Huber, Newton</li>
-          <li>Conversions : m³, dm³, litres, cm³</li>
+          <li>Conversions : m³, dm³, litres, cm³, tonnes, stères</li>
         </ul>
       </aside>
     </section>
@@ -107,6 +107,27 @@
 
           <div id="forestryInputs" class="input-grid"></div>
 
+          <div class="conversion-panel">
+            <strong>Conversions métier</strong>
+            <p class="muted" style="margin: 0 0 14px;">
+              Les tonnes et les stères exigent des paramètres supplémentaires. La tonne dépend d’une masse volumique choisie. Le stère dépend d’un coefficient de conversion renseigné par l’utilisateur.
+            </p>
+            <div class="input-grid">
+              <div class="field">
+                <label for="woodDensity">Masse volumique du bois (kg/m³)</label>
+                <input id="woodDensity" type="number" min="0" step="any" placeholder="Ex. 700" />
+                <small>Utilisée pour calculer une masse estimée en tonnes : masse = volume × masse volumique.</small>
+                <div class="error" data-error-for="conversion_density"></div>
+              </div>
+              <div class="field">
+                <label for="solidM3PerStere">Coefficient stère (m³ pleins par stère)</label>
+                <input id="solidM3PerStere" type="number" min="0" step="any" placeholder="Ex. 0.70" />
+                <small>Exemple d’interprétation : si 1 stère correspond à 0,70 m³ pleins, alors stères = m³ pleins / 0,70.</small>
+                <div class="error" data-error-for="conversion_stere"></div>
+              </div>
+            </div>
+          </div>
+
           <div class="actions">
             <button id="forestryCalculate" class="button button-primary">Calculer</button>
             <button id="forestryReset" class="button button-secondary">Réinitialiser</button>
@@ -127,9 +148,11 @@
             <div class="metric"><div class="label">décimètres cubes</div><div id="forestryDM3" class="value">-</div></div>
             <div class="metric"><div class="label">litres</div><div id="forestryL" class="value">-</div></div>
             <div class="metric"><div class="label">centimètres cubes</div><div id="forestryCM3" class="value">-</div></div>
+            <div class="metric"><div class="label">tonnes estimées</div><div id="forestryTons" class="value">-</div></div>
+            <div class="metric"><div class="label">stères estimés</div><div id="forestrySteres" class="value">-</div></div>
           </div>
 
-          <div class="note">Hypothèse de calcul : les sections sont assimilées à des cercles et les diamètres sont saisis dans la même unité.</div>
+          <div class="note">Hypothèse de calcul : les sections sont assimilées à des cercles. Les conversions en tonnes et en stères sont des estimations dépendant des paramètres saisis.</div>
         </div>
       </div>
     </section>
