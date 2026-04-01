@@ -81,11 +81,25 @@ const FORESTRY_METHODS = {
   }
 };
 
+const WOOD_SPECIES = {
+  resineux: [
+    { label: "Pin (500)", density: 500 },
+    { label: "Sapin (450)", density: 450 },
+    { label: "Épicéa (470)", density: 470 }
+  ],
+  feuillu: [
+    { label: "Chêne (750)", density: 750 },
+    { label: "Hêtre (650)", density: 650 },
+    { label: "Frêne (680)", density: 680 }
+  ]
+};
+
 const state = {
   unit: "cm",
   activeTab: "solides",
   shape: "cylindre",
   forestryMethod: "smalian",
+  woodCategory: "resineux",
   shapeValues: {},
   forestryValues: {},
   conversionValues: {
@@ -97,10 +111,12 @@ const state = {
 const globalUnit = document.getElementById("globalUnit");
 const shapeSelect = document.getElementById("shapeSelect");
 const forestrySelect = document.getElementById("forestrySelect");
+const woodCategory = document.getElementById("woodCategory");
 const shapeInputs = document.getElementById("shapeInputs");
 const forestryInputs = document.getElementById("forestryInputs");
 const woodDensity = document.getElementById("woodDensity");
 const solidM3PerStere = document.getElementById("solidM3PerStere");
+const densitySuggestions = document.getElementById("densitySuggestions");
 
 function toMeters(value, unit) {
   return value * UNIT_FACTORS_TO_M[unit];
@@ -115,17 +131,33 @@ function parsePositiveNumber(value) {
   if (value === "" || value === null || value === undefined) {
     return null;
   }
+
   const n = Number(value);
+
   if (!Number.isFinite(n) || n <= 0) {
     return null;
   }
+
   return n;
+}
+
+function formatM3(value) {
+  if (!Number.isFinite(value)) {
+    return "-";
+  }
+  return `${value.toFixed(6)} m³`;
 }
 
 function formatVolumeSet(volumeM3) {
   if (!Number.isFinite(volumeM3)) {
-    return { m3: "-", dm3: "-", litres: "-", cm3: "-" };
+    return {
+      m3: "-",
+      dm3: "-",
+      litres: "-",
+      cm3: "-"
+    };
   }
+
   return {
     m3: `${volumeM3.toFixed(6)} m³`,
     dm3: `${(volumeM3 * 1000).toFixed(3)} dm³`,
@@ -138,6 +170,7 @@ function formatTons(volumeM3, densityKgM3) {
   if (!Number.isFinite(volumeM3) || !Number.isFinite(densityKgM3)) {
     return "-";
   }
+
   return `${((volumeM3 * densityKgM3) / 1000).toFixed(3)} t`;
 }
 
@@ -145,6 +178,7 @@ function formatSteres(volumeM3, solidM3PerStereValue) {
   if (!Number.isFinite(volumeM3) || !Number.isFinite(solidM3PerStereValue)) {
     return "-";
   }
+
   return `${(volumeM3 / solidM3PerStereValue).toFixed(3)} st`;
 }
 
@@ -193,73 +227,143 @@ function createField(field, type) {
 
 function renderShapeSelect() {
   shapeSelect.innerHTML = "";
+
   Object.entries(SHAPES).forEach(([key, config]) => {
     const option = document.createElement("option");
     option.value = key;
     option.textContent = config.label;
+
     if (key === state.shape) {
       option.selected = true;
     }
+
     shapeSelect.appendChild(option);
   });
 }
 
 function renderForestrySelect() {
   forestrySelect.innerHTML = "";
+
   Object.entries(FORESTRY_METHODS).forEach(([key, config]) => {
     const option = document.createElement("option");
     option.value = key;
     option.textContent = config.label;
+
     if (key === state.forestryMethod) {
       option.selected = true;
     }
+
     forestrySelect.appendChild(option);
   });
 }
 
 function renderShapePanel() {
   const config = SHAPES[state.shape];
+
   document.getElementById("shapeBadge").textContent = config.label;
   document.getElementById("shapeFormula").textContent = config.formula;
   document.getElementById("shapeResultTitle").textContent = `Résultat pour ${config.label}`;
   document.getElementById("shapeResultFormula").textContent = config.formula;
 
   shapeInputs.innerHTML = "";
+
   config.fields.forEach((field) => {
     shapeInputs.appendChild(createField(field, "shape"));
   });
 }
 
+function renderBusinessLogicText() {
+  const node = document.getElementById("businessLogicText");
+
+  if (state.woodCategory === "resineux") {
+    node.textContent =
+      "Résineux : le volume calculé est traité comme un m³ sur écorce. Le m³S sous écorce est calculé avec un abattement forfaitaire de 12 %. Les tonnes et les stères sont calculés sur le m³S, qui sert ici de volume de référence métier.";
+  } else {
+    node.textContent =
+      "Feuillu : le volume calculé est traité comme un m³ sur écorce. Aucun m³S n’est calculé dans cette version faute de règle métier fournie. Les tonnes et les stères sont calculés sur le m³ sur écorce, qui sert ici de volume de référence métier.";
+  }
+}
+
+function renderDensitySuggestions() {
+  densitySuggestions.innerHTML = "";
+
+  WOOD_SPECIES[state.woodCategory].forEach((species) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip-button";
+    button.dataset.density = species.density;
+    button.textContent = species.label;
+
+    button.addEventListener("click", () => {
+      woodDensity.value = species.density;
+      state.conversionValues.density = String(species.density);
+      showError("conversion", "density", "");
+    });
+
+    densitySuggestions.appendChild(button);
+  });
+}
+
 function renderForestryPanel() {
   const config = FORESTRY_METHODS[state.forestryMethod];
+
   document.getElementById("forestryMethodName").textContent = config.label;
   document.getElementById("forestryMethodDescription").textContent = config.description;
   document.getElementById("forestryMethodFormula").textContent = config.formula;
   document.getElementById("forestryResultTitle").textContent = `Résultat selon ${config.label}`;
   document.getElementById("forestryResultFormula").textContent = config.formula;
+  document.getElementById("forestryCategoryLabel").textContent =
+    state.woodCategory === "resineux" ? "Résineux" : "Feuillu";
 
   forestryInputs.innerHTML = "";
+
   config.fields.forEach((field) => {
     forestryInputs.appendChild(createField(field, "forestry"));
   });
 
   woodDensity.value = state.conversionValues.density;
   solidM3PerStere.value = state.conversionValues.solidM3PerStere;
+
+  renderBusinessLogicText();
+  renderDensitySuggestions();
 }
 
-function setResult(prefix, volumeM3, extra = {}) {
+function setShapeResult(volumeM3) {
   const formatted = formatVolumeSet(volumeM3);
 
-  document.getElementById(`${prefix}MainValue`).textContent = formatted.m3;
-  document.getElementById(`${prefix}M3`).textContent = formatted.m3;
-  document.getElementById(`${prefix}DM3`).textContent = formatted.dm3;
-  document.getElementById(`${prefix}L`).textContent = formatted.litres;
-  document.getElementById(`${prefix}CM3`).textContent = formatted.cm3;
+  document.getElementById("shapeMainValue").textContent = formatted.m3;
+  document.getElementById("shapeM3").textContent = formatted.m3;
+  document.getElementById("shapeDM3").textContent = formatted.dm3;
+  document.getElementById("shapeL").textContent = formatted.litres;
+  document.getElementById("shapeCM3").textContent = formatted.cm3;
+}
 
-  if (prefix === "forestry") {
-    document.getElementById("forestryTons").textContent = extra.tons || "-";
-    document.getElementById("forestrySteres").textContent = extra.steres || "-";
-  }
+function setForestryResult(result) {
+  document.getElementById("forestryM3OverBark").textContent = result.overBark;
+  document.getElementById("forestryM3UnderBark").textContent = result.underBark;
+  document.getElementById("forestryTons").textContent = result.tons;
+  document.getElementById("forestrySteres").textContent = result.steres;
+  document.getElementById("forestryDM3").textContent = result.dm3;
+  document.getElementById("forestryL").textContent = result.litres;
+  document.getElementById("forestryCM3").textContent = result.cm3;
+  document.getElementById("forestryMainValue").textContent = result.mainValue;
+  document.getElementById("forestryMainSubtitle").textContent = result.mainSubtitle;
+  document.getElementById("forestryCategoryLabel").textContent =
+    state.woodCategory === "resineux" ? "Résineux" : "Feuillu";
+}
+
+function setForestryEmptyResult() {
+  setForestryResult({
+    overBark: "-",
+    underBark: "-",
+    tons: "-",
+    steres: "-",
+    dm3: "-",
+    litres: "-",
+    cm3: "-",
+    mainValue: "-",
+    mainSubtitle: "-"
+  });
 }
 
 function clearErrors(containerId) {
@@ -283,10 +387,12 @@ function showError(type, key, message) {
 
 function validateValues(fields, values, type) {
   clearErrors(type === "shape" ? "shapeInputs" : "forestryInputs");
+
   let valid = true;
 
   fields.forEach((field) => {
     const parsed = parsePositiveNumber(values[field.key]);
+
     if (parsed === null) {
       valid = false;
       showError(type, field.key, "Saisir une valeur numérique strictement positive.");
@@ -300,7 +406,7 @@ function calculateShapeVolume() {
   const config = SHAPES[state.shape];
 
   if (!validateValues(config.fields, state.shapeValues, "shape")) {
-    setResult("shape", NaN);
+    setShapeResult(NaN);
     return;
   }
 
@@ -348,24 +454,13 @@ function calculateShapeVolume() {
     }
   }
 
-  setResult("shape", volume);
+  setShapeResult(volume);
 }
 
-function calculateForestryVolume() {
-  const config = FORESTRY_METHODS[state.forestryMethod];
-
-  if (!validateValues(config.fields, state.forestryValues, "forestry")) {
-    setResult("forestry", NaN, { tons: "-", steres: "-" });
-    return;
-  }
-
-  clearConversionErrors();
-
+function calculateRawForestryVolume() {
   const v = Object.fromEntries(
     Object.entries(state.forestryValues).map(([k, val]) => [k, Number(val)])
   );
-
-  let volume = NaN;
 
   switch (state.forestryMethod) {
     case "smalian": {
@@ -374,16 +469,14 @@ function calculateForestryVolume() {
       const L = toMeters(v.L, state.unit);
       const A1 = areaFromDiameter(d1);
       const A2 = areaFromDiameter(d2);
-      volume = L * (A1 + A2) / 2;
-      break;
+      return L * (A1 + A2) / 2;
     }
 
     case "huber": {
       const dm = toMeters(v.dm, state.unit);
       const L = toMeters(v.L, state.unit);
       const Am = areaFromDiameter(dm);
-      volume = L * Am;
-      break;
+      return L * Am;
     }
 
     case "newton": {
@@ -394,9 +487,33 @@ function calculateForestryVolume() {
       const A1 = areaFromDiameter(d1);
       const Am = areaFromDiameter(dm);
       const A2 = areaFromDiameter(d2);
-      volume = L * (A1 + 4 * Am + A2) / 6;
-      break;
+      return L * (A1 + 4 * Am + A2) / 6;
     }
+
+    default:
+      return NaN;
+  }
+}
+
+function calculateForestryVolume() {
+  const config = FORESTRY_METHODS[state.forestryMethod];
+
+  if (!validateValues(config.fields, state.forestryValues, "forestry")) {
+    setForestryEmptyResult();
+    return;
+  }
+
+  clearConversionErrors();
+
+  const overBarkVolume = calculateRawForestryVolume();
+  let underBarkVolume = null;
+  let referenceVolume = overBarkVolume;
+  let referenceLabel = "Volume de référence : m³ sur écorce";
+
+  if (state.woodCategory === "resineux") {
+    underBarkVolume = overBarkVolume * 0.88;
+    referenceVolume = underBarkVolume;
+    referenceLabel = "Volume de référence : m³S sous écorce (abattement 12 %)";
   }
 
   const density = parsePositiveNumber(state.conversionValues.density);
@@ -408,22 +525,34 @@ function calculateForestryVolume() {
   if (state.conversionValues.density !== "" && density === null) {
     showError("conversion", "density", "Saisir une masse volumique strictement positive.");
   } else if (density !== null) {
-    tons = formatTons(volume, density);
+    tons = formatTons(referenceVolume, density);
   }
 
   if (state.conversionValues.solidM3PerStere !== "" && stereCoefficient === null) {
     showError("conversion", "stere", "Saisir un coefficient stère strictement positif.");
   } else if (stereCoefficient !== null) {
-    steres = formatSteres(volume, stereCoefficient);
+    steres = formatSteres(referenceVolume, stereCoefficient);
   }
 
-  setResult("forestry", volume, { tons, steres });
+  const formattedReference = formatVolumeSet(referenceVolume);
+
+  setForestryResult({
+    overBark: formatM3(overBarkVolume),
+    underBark: underBarkVolume === null ? "Non applicable" : formatM3(underBarkVolume),
+    tons,
+    steres,
+    dm3: formattedReference.dm3,
+    litres: formattedReference.litres,
+    cm3: formattedReference.cm3,
+    mainValue: formattedReference.m3,
+    mainSubtitle: referenceLabel
+  });
 }
 
 function resetShape() {
   state.shapeValues = {};
   renderShapePanel();
-  setResult("shape", NaN);
+  setShapeResult(NaN);
 }
 
 function resetForestry() {
@@ -432,9 +561,10 @@ function resetForestry() {
     density: "",
     solidM3PerStere: ""
   };
+
   renderForestryPanel();
   clearConversionErrors();
-  setResult("forestry", NaN, { tons: "-", steres: "-" });
+  setForestryEmptyResult();
 }
 
 function setupTabs() {
@@ -456,16 +586,7 @@ function setupTabs() {
   });
 }
 
-function setupSuggestionButtons() {
-  document.querySelectorAll("[data-density]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const value = button.dataset.density;
-      woodDensity.value = value;
-      state.conversionValues.density = value;
-      showError("conversion", "density", "");
-    });
-  });
-
+function setupStaticSuggestionButtons() {
   document.querySelectorAll("[data-stere]").forEach((button) => {
     button.addEventListener("click", () => {
       const value = button.dataset.stere;
@@ -481,20 +602,24 @@ function setupEvents() {
     state.unit = e.target.value;
     renderShapePanel();
     renderForestryPanel();
-    setupSuggestionButtons();
   });
 
   shapeSelect.addEventListener("change", (e) => {
     state.shape = e.target.value;
     renderShapePanel();
-    setResult("shape", NaN);
+    setShapeResult(NaN);
   });
 
   forestrySelect.addEventListener("change", (e) => {
     state.forestryMethod = e.target.value;
     renderForestryPanel();
-    setupSuggestionButtons();
-    setResult("forestry", NaN, { tons: "-", steres: "-" });
+    setForestryEmptyResult();
+  });
+
+  woodCategory.addEventListener("change", (e) => {
+    state.woodCategory = e.target.value;
+    renderForestryPanel();
+    setForestryEmptyResult();
   });
 
   woodDensity.addEventListener("input", (e) => {
@@ -518,11 +643,11 @@ function init() {
   renderForestrySelect();
   renderShapePanel();
   renderForestryPanel();
-  setResult("shape", NaN);
-  setResult("forestry", NaN, { tons: "-", steres: "-" });
+  setShapeResult(NaN);
+  setForestryEmptyResult();
   setupTabs();
   setupEvents();
-  setupSuggestionButtons();
+  setupStaticSuggestionButtons();
 }
 
 init();

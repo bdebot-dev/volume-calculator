@@ -12,7 +12,7 @@
       <div>
         <h1>Calculateur de volumes et cubage forestier</h1>
         <p>
-          Application calculant les volumes des solides usuels et appliquant les méthodes forestières de Smalian, Huber et Newton.
+          Application calculant les volumes géométriques et le cubage forestier avec logique métier différenciée pour résineux et feuillus.
         </p>
 
         <div class="toolbar">
@@ -23,7 +23,7 @@
               <option value="cm" selected>Centimètres (cm)</option>
               <option value="m">Mètres (m)</option>
             </select>
-            <small>Toutes les valeurs saisies sont converties automatiquement en mètres avant calcul.</small>
+            <small>Toutes les valeurs de longueur sont converties automatiquement en mètres avant calcul.</small>
           </div>
         </div>
       </div>
@@ -31,10 +31,10 @@
       <aside class="hero-side">
         <strong>Ce que fait l’outil</strong>
         <ul>
-          <li>Volumes : cylindre, tronc de cône, parallélépipède rectangle, cône, sphère</li>
+          <li>Volumes géométriques : cylindre, tronc de cône, parallélépipède rectangle, cône, sphère</li>
           <li>Cubage forestier : Smalian, Huber, Newton</li>
-          <li>Conversions : m³, dm³, litres, cm³, tonnes, stères</li>
-          <li>Suggestions : essences indicatives et coefficients stère usuels</li>
+          <li>Restitutions métier : m³ sur écorce, m³S sous écorce, tonnes, stères</li>
+          <li>Gestion différenciée : résineux et feuillus</li>
         </ul>
       </aside>
     </section>
@@ -95,11 +95,21 @@
       <div class="grid">
         <div class="card">
           <h2>Module de cubage forestier</h2>
-          <p class="description">Choisir une méthode adaptée au relevé des diamètres sur la grume.</p>
+          <p class="description">Choisir une méthode de cubage, une catégorie de bois, puis les paramètres de conversion métier.</p>
 
-          <div class="field">
-            <label for="forestrySelect">Méthode de cubage</label>
-            <select id="forestrySelect"></select>
+          <div class="input-grid">
+            <div class="field">
+              <label for="forestrySelect">Méthode de cubage</label>
+              <select id="forestrySelect"></select>
+            </div>
+
+            <div class="field">
+              <label for="woodCategory">Catégorie de bois</label>
+              <select id="woodCategory">
+                <option value="resineux">Résineux</option>
+                <option value="feuillu">Feuillu</option>
+              </select>
+            </div>
           </div>
 
           <div class="method-panel">
@@ -108,27 +118,28 @@
             <div id="forestryMethodFormula" class="muted method-formula"></div>
           </div>
 
+          <div class="logic-panel">
+            <strong>Logique métier appliquée</strong>
+            <div id="businessLogicText" class="muted"></div>
+          </div>
+
           <div id="forestryInputs" class="input-grid"></div>
 
           <div class="conversion-panel">
             <strong>Conversions métier</strong>
             <p class="muted conversion-intro">
-              Les tonnes et les stères exigent des paramètres supplémentaires. La tonne dépend d’une masse volumique choisie. Le stère dépend d’un coefficient de conversion renseigné par l’utilisateur.
+              Le volume calculé par Smalian, Huber ou Newton est traité ici comme un volume sur écorce. Pour les résineux, le m³S sous écorce est obtenu par abattement forfaitaire de 12 %. Pour les feuillus, seul le m³ sur écorce est retenu comme volume de référence métier.
             </p>
 
             <div class="input-grid">
               <div class="field">
                 <label for="woodDensity">Masse volumique du bois (kg/m³)</label>
                 <input id="woodDensity" type="number" min="0" step="any" placeholder="Ex. 700" />
-                <small>Utilisée pour calculer une masse estimée en tonnes : masse = volume × masse volumique.</small>
+                <small>Utilisée pour calculer une masse estimée en tonnes à partir du volume de référence métier.</small>
 
                 <div class="suggestions">
                   <small>Exemples d’essences indicatives :</small>
-                  <div class="chips">
-                    <button type="button" class="chip-button" data-density="750">Chêne (750)</button>
-                    <button type="button" class="chip-button" data-density="650">Hêtre (650)</button>
-                    <button type="button" class="chip-button" data-density="500">Pin (500)</button>
-                  </div>
+                  <div class="chips" id="densitySuggestions"></div>
                 </div>
 
                 <div class="error" data-error-for="conversion_density"></div>
@@ -137,7 +148,7 @@
               <div class="field">
                 <label for="solidM3PerStere">Coefficient stère (m³ pleins par stère)</label>
                 <input id="solidM3PerStere" type="number" min="0" step="any" placeholder="Ex. 0.70" />
-                <small>Exemple : si 1 stère correspond à 0,70 m³ pleins, alors stères = m³ pleins / 0,70.</small>
+                <small>Le nombre de stères est calculé à partir du volume de référence métier.</small>
 
                 <div class="suggestions">
                   <small>Valeurs usuelles indicatives :</small>
@@ -164,21 +175,24 @@
           <div id="forestryResultFormula" class="result-formula">Aucune méthode sélectionnée.</div>
 
           <div class="result-main">
-            <div class="label">Volume principal</div>
+            <div class="label">Volume de référence métier</div>
             <div id="forestryMainValue" class="value">-</div>
+            <div id="forestryMainSubtitle" class="result-subtitle">-</div>
           </div>
 
           <div class="result-grid">
-            <div class="metric"><div class="label">mètres cubes</div><div id="forestryM3" class="value">-</div></div>
+            <div class="metric"><div class="label">m³ sur écorce</div><div id="forestryM3OverBark" class="value">-</div></div>
+            <div class="metric"><div class="label">m³S sous écorce</div><div id="forestryM3UnderBark" class="value">-</div></div>
+            <div class="metric"><div class="label">tonnes estimées</div><div id="forestryTons" class="value">-</div></div>
+            <div class="metric"><div class="label">stères estimés</div><div id="forestrySteres" class="value">-</div></div>
             <div class="metric"><div class="label">décimètres cubes</div><div id="forestryDM3" class="value">-</div></div>
             <div class="metric"><div class="label">litres</div><div id="forestryL" class="value">-</div></div>
             <div class="metric"><div class="label">centimètres cubes</div><div id="forestryCM3" class="value">-</div></div>
-            <div class="metric"><div class="label">tonnes estimées</div><div id="forestryTons" class="value">-</div></div>
-            <div class="metric"><div class="label">stères estimés</div><div id="forestrySteres" class="value">-</div></div>
+            <div class="metric"><div class="label">catégorie</div><div id="forestryCategoryLabel" class="value">-</div></div>
           </div>
 
           <div class="note">
-            Hypothèse de calcul : les sections sont assimilées à des cercles. Les conversions en tonnes et en stères sont des estimations dépendant des paramètres saisis.
+            Résineux : m³S = m³ sur écorce × 0,88. Feuillus : le m³ de référence reste le m³ sur écorce. Les tonnes et les stères sont calculés sur ce volume de référence métier.
           </div>
         </div>
       </div>
