@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calculateur de volumes</title>
-  <link rel="stylesheet" href="main.css">
+  <title>Calculateur de volumes et cubage forestier</title>
+  <link rel="stylesheet" href="main.css" />
 </head>
 <body>
   <div class="container">
@@ -12,7 +12,7 @@
       <div>
         <h1>Calculateur de volumes et cubage forestier</h1>
         <p>
-          Application permettant de calculer les volumes des solides usuels et applique les méthodes forestières de Smalian, Huber et Newton.
+          Application calculant les volumes des solides usuels et appliquant les méthodes forestières de Smalian, Huber et Newton.
         </p>
 
         <div class="toolbar">
@@ -34,6 +34,7 @@
           <li>Volumes : cylindre, tronc de cône, parallélépipède rectangle, cône, sphère</li>
           <li>Cubage forestier : Smalian, Huber, Newton</li>
           <li>Conversions : m³, dm³, litres, cm³, tonnes, stères</li>
+          <li>Suggestions : essences indicatives et coefficients stère usuels</li>
         </ul>
       </aside>
     </section>
@@ -83,7 +84,9 @@
             <div class="metric"><div class="label">centimètres cubes</div><div id="shapeCM3" class="value">-</div></div>
           </div>
 
-          <div class="note">Les dimensions sont interprétées dans l’unité choisie, puis converties en mètres. Le résultat principal est toujours donné en m³.</div>
+          <div class="note">
+            Les dimensions sont interprétées dans l’unité choisie, puis converties en mètres. Le résultat principal est toujours donné en m³.
+          </div>
         </div>
       </div>
     </section>
@@ -102,27 +105,49 @@
           <div class="method-panel">
             <strong id="forestryMethodName"></strong>
             <div id="forestryMethodDescription" class="muted"></div>
-            <div id="forestryMethodFormula" class="muted" style="margin-top:10px;"></div>
+            <div id="forestryMethodFormula" class="muted method-formula"></div>
           </div>
 
           <div id="forestryInputs" class="input-grid"></div>
 
           <div class="conversion-panel">
             <strong>Conversions métier</strong>
-            <p class="muted" style="margin: 0 0 14px;">
+            <p class="muted conversion-intro">
               Les tonnes et les stères exigent des paramètres supplémentaires. La tonne dépend d’une masse volumique choisie. Le stère dépend d’un coefficient de conversion renseigné par l’utilisateur.
             </p>
+
             <div class="input-grid">
               <div class="field">
                 <label for="woodDensity">Masse volumique du bois (kg/m³)</label>
                 <input id="woodDensity" type="number" min="0" step="any" placeholder="Ex. 700" />
                 <small>Utilisée pour calculer une masse estimée en tonnes : masse = volume × masse volumique.</small>
+
+                <div class="suggestions">
+                  <small>Exemples d’essences indicatives :</small>
+                  <div class="chips">
+                    <button type="button" class="chip-button" data-density="750">Chêne (750)</button>
+                    <button type="button" class="chip-button" data-density="650">Hêtre (650)</button>
+                    <button type="button" class="chip-button" data-density="500">Pin (500)</button>
+                  </div>
+                </div>
+
                 <div class="error" data-error-for="conversion_density"></div>
               </div>
+
               <div class="field">
                 <label for="solidM3PerStere">Coefficient stère (m³ pleins par stère)</label>
                 <input id="solidM3PerStere" type="number" min="0" step="any" placeholder="Ex. 0.70" />
-                <small>Exemple d’interprétation : si 1 stère correspond à 0,70 m³ pleins, alors stères = m³ pleins / 0,70.</small>
+                <small>Exemple : si 1 stère correspond à 0,70 m³ pleins, alors stères = m³ pleins / 0,70.</small>
+
+                <div class="suggestions">
+                  <small>Valeurs usuelles indicatives :</small>
+                  <div class="chips">
+                    <button type="button" class="chip-button" data-stere="1">Bûches 1 m (1.00)</button>
+                    <button type="button" class="chip-button" data-stere="0.80">Bûches 50 cm (0.80)</button>
+                    <button type="button" class="chip-button" data-stere="0.70">Bûches 33 cm (0.70)</button>
+                  </div>
+                </div>
+
                 <div class="error" data-error-for="conversion_stere"></div>
               </div>
             </div>
@@ -152,11 +177,14 @@
             <div class="metric"><div class="label">stères estimés</div><div id="forestrySteres" class="value">-</div></div>
           </div>
 
-          <div class="note">Hypothèse de calcul : les sections sont assimilées à des cercles. Les conversions en tonnes et en stères sont des estimations dépendant des paramètres saisis.</div>
+          <div class="note">
+            Hypothèse de calcul : les sections sont assimilées à des cercles. Les conversions en tonnes et en stères sont des estimations dépendant des paramètres saisis.
+          </div>
         </div>
       </div>
     </section>
   </div>
-    <script src="app.js"></script>
+
+  <script src="app.js"></script>
 </body>
 </html>
