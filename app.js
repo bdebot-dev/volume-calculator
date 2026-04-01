@@ -567,22 +567,30 @@ function resetForestry() {
   setForestryEmptyResult();
 }
 
+function activateTab(tabId) {
+  state.activeTab = tabId;
+
+  document.querySelectorAll(".tab-button").forEach((btn) => {
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.id === tabId);
+  });
+}
+
 function setupTabs() {
   document.querySelectorAll(".tab-button").forEach((button) => {
     button.addEventListener("click", () => {
-      state.activeTab = button.dataset.tab;
-
-      document.querySelectorAll(".tab-button").forEach((btn) => {
-        btn.classList.remove("active");
-      });
-
-      document.querySelectorAll(".tab-panel").forEach((panel) => {
-        panel.classList.remove("active");
-      });
-
-      button.classList.add("active");
-      document.getElementById(state.activeTab).classList.add("active");
+      activateTab(button.dataset.tab);
     });
+
+    button.addEventListener("touchend", (event) => {
+      event.preventDefault();
+      activateTab(button.dataset.tab);
+    }, { passive: false });
   });
 }
 

@@ -121,16 +121,18 @@ select:focus {
 }
 
 .tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
   margin-bottom: 24px;
   background: #dfe6ed;
   padding: 8px;
   border-radius: 16px;
+  position: relative;
+  z-index: 2;
 }
 
 .tab-button {
+  flex: 1 1 0;
   border: none;
   border-radius: 12px;
   padding: 14px 16px;
@@ -138,7 +140,9 @@ select:focus {
   cursor: pointer;
   font-weight: 700;
   color: var(--text);
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .tab-button.active {
@@ -378,9 +382,12 @@ select:focus {
   }
 
   .input-grid,
-  .result-grid,
-  .tabs {
+  .result-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    flex-direction: column;
   }
 
   .hero,
